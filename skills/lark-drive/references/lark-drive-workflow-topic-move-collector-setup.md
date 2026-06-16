@@ -59,7 +59,8 @@
 2. 如果目标需要创建，只解析父级位置和新目标名称。
 3. 在本状态中不得创建文件夹或 Wiki 节点。
 4. 分别保留 Drive 文件夹 token、Wiki 节点 token、Wiki 对象 token、space ID 和 parent token。
-5. 如果已知移动方向不支持，尽早标记。
+5. 如果目标 URL / token 存在，但当前身份无法读取或解析目标位置，设置 `target_resolve_status=permission_denied` 并停止进入搜索。
+6. 如果已知移动方向不支持，尽早标记。
 
 ### 目标解析
 
@@ -71,6 +72,15 @@
 | 在已知父级下新建 Wiki 节点 | 解析知识空间和可选父节点；保存新节点标题；不创建 | `new_wiki_node` |
 | 以 Wiki 空间根节点作为目标 | 解析 `space_id`；parent token 可以为空 | `wiki_space` |
 | 目标名称有歧义 | 仅在必要时搜索或列出候选；展示候选并等待用户选择 | `unknown` |
+
+### 目标解析状态
+
+| 条件 | `target_resolve_status` |
+|------|--------------------------|
+| 目标已解析，或待创建目标的父级位置已解析 | `resolved` |
+| 目标名称有歧义、候选不唯一，或 `target_type=unknown` 需要用户选择 | `ambiguous` |
+| 已知目标方向或目标类型不支持本 workflow | `unsupported` |
+| 目标 URL / token 存在，但当前身份无权读取、解析或确认目标位置 | `permission_denied` |
 
 ### 跨容器规则
 
@@ -137,7 +147,7 @@
   "target_name": "待创建目标名称",
   "create_required": false,
   "allow_cross_container_move": true,
-  "resolve_status": "resolved|ambiguous|unsupported|permission_denied"
+  "target_resolve_status": "resolved|ambiguous|unsupported|permission_denied"
 }
 ```
 
@@ -150,4 +160,4 @@
 | `target_name` | 待创建目标的名称。 |
 | `create_required` | 是否需要在 `EXECUTE` 阶段创建目标。 |
 | `allow_cross_container_move` | 是否允许 Drive / Wiki 之间移动。 |
-| `resolve_status` | 目标解析状态。 |
+| `target_resolve_status` | 目标位置解析状态；不要和 `ResourceItem.item_resolve_status` 混用。 |

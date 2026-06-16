@@ -345,7 +345,7 @@
   "move_permission_state": "movable|denied|unknown",
   "move_permission_basis": "owner|explicit_full_access|api_denied|not_owner_unverified|metadata_unavailable|unsupported_direction|target_denied",
   "target_write_state": "confirmed|unknown|denied",
-  "resolve_status": "resolved|partial|failed",
+  "item_resolve_status": "resolved|partial|failed",
   "content_verify_state": "verified|search_evidence_only|skipped_by_move_permission|permission_denied|unverifiable|unsupported",
   "content_evidence": ["证据"],
   "relevance": "high|medium|low|permission_denied|no_move_permission|move_permission_unknown|unverifiable|unsupported_move_target"
@@ -364,6 +364,7 @@
 | `move_permission_state` | 当前身份下的移动资格状态；只有 `movable` 可进入默认移动链路。 |
 | `move_permission_basis` | 移动资格判断依据，用于解释为什么纳入或排除。 |
 | `target_write_state` | 目标位置是否确认可写。 |
+| `item_resolve_status` | 资源项解析状态；不要和 `TargetLocation.target_resolve_status` 混用。 |
 | `content_verify_state` | 内容验证状态或跳过验证原因。 |
 | `content_evidence` | 支撑相关性判断的命中证据。 |
 | `relevance` | 相关性和可执行性分组。 |
