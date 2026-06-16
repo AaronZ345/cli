@@ -15,15 +15,15 @@
 
 ## 搜索原则
 
-1. 默认使用 `drive +search` 做 Workspace 全量召回。
+1. 默认使用 `drive +search --mine` 召回当前用户 owner / 负责的 Workspace 资源。
 2. 除非用户本来就要求限定范围，否则不要要求用户指定文件夹或 Wiki 范围。
 3. `SEARCH_RECALL` 和 `RECALL_ENHANCE` 必须保持为独立状态。
-4. `SEARCH_RECALL` 只使用用户原始关键词和显式限制。
-5. `RECALL_ENHANCE` 可以基于基础召回证据增加扩展 query。
+4. `SEARCH_RECALL` 使用用户原始关键词、`owner_scope` 和显式限制。
+5. `RECALL_ENHANCE` 可以基于基础召回证据增加扩展 query，且必须继承同一个 `owner_scope`。
 6. 每个候选项必须保留 query 证据，方便后续解释来源。
 7. 单页或单个 query 批次不代表完整覆盖；必须继续分页直到 `has_more=false` 或出现阻塞。
 8. 召回和增强召回可能耗时较长，执行超过 60 秒时必须输出进度提示，之后约每 60 秒提示一次。
-9. 不默认使用 `--mine` 做 owner 过滤；只有用户明确要求“只整理我 owner / 我负责 / 我可管理的文档”时，才把 `--mine` 作为显式限制。
+9. 只有用户在 `CONFIRM_CONTEXT` 明确确认 `owner_scope=all_visible` 时，才允许移除 `--mine`。
 
 ## 状态：`SEARCH_RECALL`
 
@@ -32,13 +32,14 @@
 必须：
 
 1. 基于已确认的 `topic` 构造基础 query。
-2. 只应用 `constraints` 中的显式限制。
+2. 应用默认 `owner_scope=mine` 和 `constraints` 中的显式限制。
 3. 不隐式添加 `--folder-tokens` 或 `--space-ids`。
-4. 不隐式添加 `--mine`；只有用户在 `CONFIRM_CONTEXT` 确认 owner / 可管理范围限制时才使用。
-5. 除非命令限制要求更低值，否则使用 `--page-size 20`。
-6. 继续分页并合并所有基础召回页面。
-7. 记录基础统计：query、页数、收集数量、重复数量、阻塞项。
-8. 除非出现阻塞，否则不询问用户，直接进入 `RECALL_ENHANCE`。
+4. 当 `owner_scope=mine` 时，所有基础 query 必须带 `--mine`。
+5. 当 `owner_scope=all_visible` 时，不带 `--mine`，并记录扩展召回风险。
+6. 除非命令限制要求更低值，否则使用 `--page-size 20`。
+7. 继续分页并合并所有基础召回页面。
+8. 记录基础统计：query、搜索范围、页数、收集数量、重复数量、阻塞项。
+9. 除非出现阻塞，否则不询问用户，直接进入 `RECALL_ENHANCE`。
 
 ### 召回进度 UI
 
@@ -71,6 +72,7 @@
 ```text
 基础召回完成：
 - 使用 query：
+- 搜索范围：
 - 应用限制：
 - 收集候选：
 - 去重后候选：
@@ -87,10 +89,11 @@
 
 1. 基于已确认主题和基础召回证据生成增强 query。
 2. 确保增强 query 可解释且不引入明显污染。
-3. 每个 query 都必须处理分页。
-4. 有稳定去重键时，按稳定去重键合并候选项。
-5. 为每个候选项保留 `source_queries` 和命中证据。
-6. 当 query 不再产生新候选，或出现工具预算 / API 阻塞时，停止增强。
+3. 每个增强 query 都必须继承 `owner_scope`；`owner_scope=mine` 时必须带 `--mine`。
+4. 每个 query 都必须处理分页。
+5. 有稳定去重键时，按稳定去重键合并候选项。
+6. 为每个候选项保留 `source_queries` 和命中证据。
+7. 当 query 不再产生新候选，或出现工具预算 / API 阻塞时，停止增强。
 
 ### 召回阶段退出门禁
 

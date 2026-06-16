@@ -100,6 +100,7 @@
 2. `drive permission.members auth` 不提供 `full_access` 或 `move` action；不能用 `view`、`edit`、`share` 或 `manage_public` 结果推断可移动。
 3. 目标位置权限单独写入 `target_write_state`；目标不可写时，不得生成可执行移动计划。
 4. `move_permission_state=unknown` 的资源默认不进入内容验证、相关性高 / 中分组或移动计划。
+5. 当 `owner_scope=mine` 但解析出的 owner 不是当前用户时，将该资源视为异常候选，标记为 `move_permission_state=unknown`，不得加入移动计划。
 
 ## 状态：`CONTENT_VERIFY`
 
@@ -183,6 +184,8 @@
 ```text
 筛选结果：
 
+搜索范围：<当前用户 owner / 负责的资源 | 所有当前身份可见资源>
+
 高相关（默认移动）：
 - 标题｜类型｜证据｜当前位置
 
@@ -231,6 +234,8 @@
 - <标题>：<原分组> -> <新分组>
 
 调整后分组：
+
+搜索范围：<当前用户 owner / 负责的资源 | 所有当前身份可见资源>
 
 高相关（默认移动）：N 项
 - 标题｜类型｜证据｜当前位置

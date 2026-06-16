@@ -20,12 +20,14 @@
 
 必须：
 
-1. 提取 `topic`、`target`、`identity` 和 `constraints`。
+1. 提取 `topic`、`target`、`identity`、`owner_scope` 和 `constraints`。
 2. 将 `topic` 和 `target` 视为必填字段。
 3. 除非用户明确要求 bot / app 视角，否则 `identity` 默认使用用户身份。
 4. 默认 `allow_cross_container_move=true`，但必须在 `CONFIRM_CONTEXT` 展示。
-5. 除非用户明确提供限制，否则 `constraints` 保持为空。
-6. 如果缺少 `topic` 或 `target`，只提出最小澄清问题。
+5. 默认 `owner_scope=mine`，表示只搜索当前用户 owner / 负责的资源。
+6. 只有用户明确要求“不限 owner”“包括共享给我的”“所有我能看到的文档”或“全量搜索”时，才设置 `owner_scope=all_visible`。
+7. 除非用户明确提供限制，否则 `constraints` 保持为空。
+8. 如果缺少 `topic` 或 `target`，只提出最小澄清问题。
 
 ### 输入字段
 
@@ -34,6 +36,7 @@
 | `topic` | 用户要查找的主题、关键词、内容线索、同义词、缩写、排除词。 |
 | `target` | 归档目标，可以是已有 Drive 文件夹、已有 Wiki 节点、待创建 Drive 文件夹或待创建 Wiki 节点。 |
 | `identity` | 执行身份，默认 `--as user`。 |
+| `owner_scope` | 搜索 owner 范围，默认 `mine`；`all_visible` 仅在用户明确要求扩展到所有可见资源时使用。 |
 | `constraints` | 用户显式给出的类型、时间、创建人、评论、标题、范围等限制。 |
 | `allow_cross_container_move` | 是否允许跨 Drive / Wiki 容器移动；默认允许，但必须确认。 |
 
@@ -84,11 +87,12 @@
 
 必须：
 
-1. 展示主题、目标、身份、限制和目标解析字段。
+1. 展示主题、目标、身份、搜索 owner 范围、限制和目标解析字段。
 2. 说明下一步只进行搜索 / 读取。
 3. 说明是否计划创建目标，但尚未执行。
 4. 展示是否允许跨容器移动。
 5. 在进入 `SEARCH_RECALL` 前停止并等待用户确认。
+6. 如果 `owner_scope=all_visible`，明确提示候选数量可能较多，且可能包含无法移动的资源。
 
 ### 确认 UI
 
@@ -99,6 +103,7 @@
 目标位置：
 目标解析：
 执行身份：
+搜索范围：
 可选限制：
 跨容器移动：
 下一步操作：只进行搜索和读取验证，不创建目标，不移动资源。
@@ -106,7 +111,20 @@
 请确认是否按以上信息开始搜索？
 ```
 
-如果用户修改任一字段，更新 `topic`、`target_location` 或 `constraints`，然后只重新执行受影响的 setup 状态，再次展示确认信息。
+默认搜索范围文案：
+
+```text
+搜索范围：当前用户 owner / 负责的资源
+```
+
+扩展搜索范围文案：
+
+```text
+搜索范围：所有当前身份可见资源
+风险提示：候选数量可能较多，且部分资源可能无法移动；后续仍会经过资源解析和内容验证。
+```
+
+如果用户修改任一字段，更新 `topic`、`target_location`、`owner_scope` 或 `constraints`，然后只重新执行受影响的 setup 状态，再次展示确认信息。
 
 ## TargetLocation
 

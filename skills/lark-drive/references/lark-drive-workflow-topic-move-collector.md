@@ -25,9 +25,11 @@
 - "帮我找到和某主题相关的文档并放到这个文件夹"
 - "把所有关于某项目的资料收集到知识库节点下"
 - "找出包含某内容的资料，确认后移动到新建目录"
-- "按这个关键词全量搜索云盘，把相关资料归档"
+- "按这个关键词搜索我负责的资料，把相关资料归档"
 
-默认搜索范围是 Workspace 全量召回，不要求用户先限定文件夹或知识库范围。只有用户明确指定范围时，才使用 `--folder-tokens`、`--space-ids` 或其他显式限制。
+默认搜索范围是当前用户 owner / 负责的 Workspace 资源，即 `owner_scope=mine`。只有用户明确要求“不限 owner”“包括共享给我的”“所有我能看到的文档”或“全量搜索”时，才使用 `owner_scope=all_visible` 进入扩展召回模式。
+
+不要求用户先限定文件夹或知识库范围。只有用户明确指定范围时，才使用 `--folder-tokens`、`--space-ids` 或其他显式限制。
 
 ## 非目标
 
@@ -58,7 +60,7 @@
 3. 执行某个状态前，先读取本文档 `## 渐进加载关系` 表格中该状态对应的文档。
 4. 用户可见说明、字段说明和 UI 文案使用中文。
 5. 状态名、字段名、枚举值、命令名保留英文稳定标识。
-6. 将 `CONFIRM_CONTEXT` 和 `CONFIRM_EXECUTION` 作为强用户确认门：前者确认主题、目标位置、身份、可选限制和目标解析结果后才能搜索；后者确认创建目标和移动资源后才能写入。
+6. 将 `CONFIRM_CONTEXT` 和 `CONFIRM_EXECUTION` 作为强用户确认门：前者确认主题、目标位置、身份、搜索范围、可选限制和目标解析结果后才能搜索；后者确认创建目标和移动资源后才能写入。
 7. 进入 `EXECUTE` 前，不得创建目标文件夹 / 节点，也不得移动资源。
 8. 必须展示每个相关性分组中的资源名称；低置信分组可以折叠，但必须可查看。
 9. 默认只移动 `high` 相关资源；`medium` 资源必须由用户显式选择。
@@ -100,6 +102,7 @@ agent 在一次 workflow 运行中必须维护以下内部字段：
 | `topic` | 用户确认后的主题、关键词、同义词和排除词。 |
 | `target_location` | 目标位置解析结果，见 setup 文件的 `TargetLocation`。 |
 | `identity` | 执行身份；默认优先 `--as user`。 |
+| `owner_scope` | 搜索 owner 范围；默认 `mine`，仅搜索当前用户 owner / 负责的资源；用户明确要求扩展时才为 `all_visible`。 |
 | `constraints` | 用户显式确认的类型、时间、创建人、范围等限制。 |
 | `allow_cross_container_move` | 是否允许跨 Drive / Wiki 容器移动；默认允许，但必须展示给用户确认。 |
 | `candidate_items` | 搜索召回结果，包含 query 证据和去重信息。 |
@@ -117,7 +120,7 @@ agent 在一次 workflow 运行中必须维护以下内部字段：
 | `PARSE_INPUT` | workflow 被触发 | 加载 setup 文档；解析主题、目标、身份和限制 | 澄清问题或解析摘要 | 必填字段缺失时为 `true` | `RESOLVE_TARGET` |
 | `RESOLVE_TARGET` | 主题和目标已获得 | 解析已有目标，或解析待创建目标 | 目标解析结果 | 目标有歧义时为 `true` | `CONFIRM_CONTEXT` |
 | `CONFIRM_CONTEXT` | 目标解析完成 | 展示主题、目标、身份、限制和跨容器设置 | 搜索前确认 UI | `true` | `SEARCH_RECALL` |
-| `SEARCH_RECALL` | 用户确认上下文 | 用原始关键词和显式限制执行基础全量召回 | 搜索进度 / 基础统计 | 阻塞时为 `true` | `RECALL_ENHANCE` |
+| `SEARCH_RECALL` | 用户确认上下文 | 用原始关键词、默认 owner 范围和显式限制执行基础召回 | 搜索进度 / 基础统计 | 阻塞时为 `true` | `RECALL_ENHANCE` |
 | `RECALL_ENHANCE` | 基础召回完成 | 执行覆盖增强 query 并合并结果 | 增强召回摘要 | 阻塞时为 `true` | `RESOURCE_RESOLVE` |
 | `RESOURCE_RESOLVE` | 候选列表已准备 | 解析 token、类型、父级位置、owner 和移动资格 | 解析进度 / 阻塞摘要 | 阻塞时为 `true` | `CONTENT_VERIFY` |
 | `CONTENT_VERIFY` | 资源列表已准备 | 对支持的资源做有界内容读取 | 验证摘要 | 阻塞时为 `true` | `RELEVANCE_CLASSIFY` |
