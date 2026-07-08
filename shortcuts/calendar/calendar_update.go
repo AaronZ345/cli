@@ -29,7 +29,8 @@ var CalendarUpdate = common.Shortcut{
 		{Name: "event-id", Desc: "event ID to update", Required: true},
 		{Name: "calendar-id", Desc: "calendar ID (default: primary)"},
 		{Name: "summary", Desc: "event title"},
-		{Name: "description", Desc: "event description"},
+		{Name: "description", Desc: "deprecated: plain-text description; use --description-rich (Markdown) instead", Hidden: true},
+		{Name: "description-rich", Desc: "event description as Markdown (@file or - for stdin); the unified description field. Supports bold/italic/underline/strikethrough, links, ordered/unordered lists, and GFM tables. A Lark doc URL (bare or as a Markdown link) is auto-resolved to an inline doc-mention chip showing its title.", Input: []string{common.File, common.Stdin}},
 		{Name: "start", Desc: "new start time (ISO 8601); requires --end"},
 		{Name: "end", Desc: "new end time (ISO 8601); requires --start"},
 		{Name: "rrule", Desc: "recurrence rule (rfc5545)"},
@@ -70,7 +71,7 @@ func validateCalendarUpdate(runtime *common.RuntimeContext) error {
 		return err
 	}
 	if !hasCalendarUpdateOperation(runtime) {
-		return errs.NewValidationError(errs.SubtypeInvalidArgument, "nothing to update: specify at least one of --summary, --description, --start/--end, --rrule, --add-attendee-ids, or --remove-attendee-ids")
+		return errs.NewValidationError(errs.SubtypeInvalidArgument, "nothing to update: specify at least one of --summary, --description, --description-rich, --start/--end, --rrule, --add-attendee-ids, or --remove-attendee-ids")
 	}
 	return nil
 }
@@ -113,6 +114,10 @@ func buildCalendarUpdateEventData(runtime *common.RuntimeContext) (map[string]in
 			body[field] = runtime.Str(field)
 			hasFields = true
 		}
+	}
+	if runtime.Cmd.Flags().Changed("description-rich") {
+		body["description_rich"] = runtime.Str("description-rich")
+		hasFields = true
 	}
 	if runtime.Cmd.Flags().Changed("rrule") {
 		rrule := strings.TrimSpace(runtime.Str("rrule"))
@@ -350,8 +355,12 @@ func calendarUpdateResult(eventID string, event map[string]interface{}, addedCou
 	if summary, _ := event["summary"].(string); summary != "" {
 		result["summary"] = summary
 	}
-	if description, _ := event["description"].(string); description != "" {
-		result["description"] = description
+	descriptionRich, _ := event["description_rich"].(string)
+	if descriptionRich == "" {
+		descriptionRich, _ = event["description"].(string)
+	}
+	if descriptionRich != "" {
+		result["description_rich"] = descriptionRich
 	}
 	if start := formatCalendarEventTime(event["start_time"]); start != "" {
 		result["start"] = start

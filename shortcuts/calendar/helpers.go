@@ -30,6 +30,18 @@ func resolveStartEnd(runtime *common.RuntimeContext) (string, string) {
 	return startInput, endInput
 }
 
+func unifyDescriptionRich(event map[string]interface{}) {
+	if event == nil {
+		return
+	}
+	if descRich, _ := event["description_rich"].(string); descRich == "" {
+		if desc, _ := event["description"].(string); desc != "" {
+			event["description_rich"] = desc
+		}
+	}
+	delete(event, "description")
+}
+
 func hasExplicitBotFlag(cmd *cobra.Command) bool {
 	if cmd == nil {
 		return false
