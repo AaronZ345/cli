@@ -34,6 +34,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"os/exec"
@@ -383,8 +384,7 @@ func createKeychainKey(label string) (crypto.PublicKey, error) {
 		return nil, err
 	}
 	der := x509.MarshalPKCS1PrivateKey(privateKey)
-	if _, err := pemFile.WriteString("-----BEGIN RSA PRIVATE KEY-----\n" +
-		base64Wrap(der) + "-----END RSA PRIVATE KEY-----\n"); err != nil {
+	if err := pem.Encode(pemFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: der}); err != nil {
 		pemFile.Close()
 		return nil, err
 	}
@@ -467,21 +467,6 @@ func decodePublicKey(encoded string) (crypto.PublicKey, error) {
 		return nil, fmt.Errorf("keysigner: decode public key: %w", err)
 	}
 	return x509.ParsePKIXPublicKey(der)
-}
-
-// base64Wrap PEM-wraps DER bytes at 64 columns.
-func base64Wrap(der []byte) string {
-	enc := base64.StdEncoding.EncodeToString(der)
-	var b strings.Builder
-	for i := 0; i < len(enc); i += 64 {
-		end := i + 64
-		if end > len(enc) {
-			end = len(enc)
-		}
-		b.WriteString(enc[i:end])
-		b.WriteByte('\n')
-	}
-	return b.String()
 }
 
 func readKeyMetadata(label string) (*keyMetadata, error) {

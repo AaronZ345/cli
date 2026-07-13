@@ -34,7 +34,7 @@ type ConfigInitOptions struct {
 	AppSecretStdin bool   // read app-secret from stdin (avoids process list exposure)
 	Brand          string
 	New            bool
-	PrivateKeyJWT  bool // --private_key_jwt: request private_key_jwt instead of the default client_secret
+	PrivateKeyJWT  bool // --private-key-jwt: request private_key_jwt instead of the default client_secret
 
 	Lang         string // raw --lang (string for cobra); normalized to canonical/"" in validateInitLang
 	langExplicit bool   // true when --lang was explicitly passed
@@ -87,7 +87,7 @@ if the user explicitly wants a separate app inside the Agent workspace.`,
 	}
 
 	cmd.Flags().BoolVar(&opts.New, "new", false, "create a new app directly (skip mode selection)")
-	cmd.Flags().BoolVar(&opts.PrivateKeyJWT, "private_key_jwt", false, "create a new app with private_key_jwt (signed by a platform key, no app secret)")
+	cmd.Flags().BoolVar(&opts.PrivateKeyJWT, "private-key-jwt", false, "create a new app with private_key_jwt (signed by a platform key, no app secret)")
 	cmd.Flags().StringVar(&opts.AppID, "app-id", "", "App ID (non-interactive)")
 	cmd.Flags().BoolVar(&opts.AppSecretStdin, "app-secret-stdin", false, "Read App Secret from stdin to avoid process list exposure")
 	cmd.Flags().StringVar(&opts.Brand, "brand", "feishu", "feishu or lark (non-interactive, default feishu)")
@@ -492,16 +492,16 @@ func configInitRun(opts *ConfigInitOptions) error {
 		switch {
 		case opts.Restore:
 			return errs.NewValidationError(errs.SubtypeInvalidArgument,
-				"--private_key_jwt cannot be combined with --restore; restore preserves the stored auth method").
-				WithParam("--private_key_jwt")
+				"--private-key-jwt cannot be combined with --restore; restore preserves the stored auth method").
+				WithParam("--private-key-jwt")
 		case opts.AppID != "":
 			return errs.NewValidationError(errs.SubtypeInvalidArgument,
-				"--private_key_jwt cannot be combined with --app-id; use --new to register a private_key_jwt app").
-				WithParam("--private_key_jwt")
+				"--private-key-jwt cannot be combined with --app-id; use --new to register a private_key_jwt app").
+				WithParam("--private-key-jwt")
 		case opts.AppSecretStdin:
 			return errs.NewValidationError(errs.SubtypeInvalidArgument,
-				"--private_key_jwt cannot be combined with --app-secret-stdin; private_key_jwt does not use an app secret").
-				WithParam("--private_key_jwt")
+				"--private-key-jwt cannot be combined with --app-secret-stdin; private_key_jwt does not use an app secret").
+				WithParam("--private-key-jwt")
 		}
 	}
 	if err := validateKeylessSignerEnvironment(); err != nil {
