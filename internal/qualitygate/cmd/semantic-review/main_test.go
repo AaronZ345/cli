@@ -9,10 +9,23 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/larksuite/cli/internal/qualitygate/facts"
 	"github.com/larksuite/cli/internal/qualitygate/semantic"
 )
+
+// waiverLine appends a from/to date window bracketing the current date to a
+// tab-separated waiver prefix. Waiver expiry is checked against time.Now
+// (semantic.waiverExpired), so hardcoding the dates turns these fixtures into
+// time bombs that start failing the day they pass; deriving the window from
+// now keeps embedded test waivers perpetually valid.
+func waiverLine(prefix string) string {
+	now := time.Now()
+	from := now.AddDate(0, 0, -30).Format(time.DateOnly)
+	to := now.AddDate(0, 0, 30).Format(time.DateOnly)
+	return prefix + "\t" + from + "\t" + to + "\n"
+}
 
 func TestRunLoadsPolicyAndWaivers(t *testing.T) {
 	repo := t.TempDir()
@@ -31,7 +44,7 @@ func TestRunLoadsPolicyAndWaivers(t *testing.T) {
 	}`, `{
 	  "allowed": ["semantic-review-v1"],
 	  "allowed_base_urls": ["https://ark.ap-southeast.bytepluses.com/api/v3"]
-	}`, "wiki-move\tskill_quality\tskill\tskills/lark-wiki/SKILL.md\t30\t\twiki-owner\tmigration\t2026-06-08\t2026-07-15\n")
+	}`, waiverLine("wiki-move\tskill_quality\tskill\tskills/lark-wiki/SKILL.md\t30\t\twiki-owner\tmigration"))
 
 	factsPath := filepath.Join(t.TempDir(), "facts.json")
 	f := facts.Facts{
@@ -105,7 +118,7 @@ func TestRunLoadsWaiversFromOverrideFile(t *testing.T) {
 		t.Fatalf("write review: %v", err)
 	}
 	waiversPath := filepath.Join(t.TempDir(), "waivers.txt")
-	if err := os.WriteFile(waiversPath, []byte("semantic-error-hint-confirm\terror_hint\terror\tshortcuts/contact/contact_search_user.go\t199\t\tcli-owner\tsandbox confirm case\t2026-06-11\t2026-07-11\n"), 0o644); err != nil {
+	if err := os.WriteFile(waiversPath, []byte(waiverLine("semantic-error-hint-confirm\terror_hint\terror\tshortcuts/contact/contact_search_user.go\t199\t\tcli-owner\tsandbox confirm case")), 0o644); err != nil {
 		t.Fatalf("write override waivers: %v", err)
 	}
 	decisionPath := filepath.Join(t.TempDir(), "decision.json")
