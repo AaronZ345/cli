@@ -4,7 +4,7 @@
 
 本文档负责资源解析、内容验证、相关性分级、审核 UI、移动计划生成、`ResourceItem` 和 `MovePlanItem`。不得创建目标、移动资源或执行恢复操作。
 
-本文档只服务 `workspace-topic-move-collector`。进入本文档时，`active_workflow` 必须是 `workspace-topic-move-collector`；不得把当前任务改路由到其他 workflow。
+本文档只服务 `topic_move_collector`。进入本文档时，`workflow_id` 必须是 `topic_move_collector`；不得把当前任务改路由到其他 workflow。
 
 ## 必读上下文
 

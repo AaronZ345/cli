@@ -1,6 +1,12 @@
 # 主题资料收集工作流
 
-本文档是 `workspace-topic-move-collector` 的唯一入口，负责定义全局约束、状态机和渐进加载关系。具体阶段规则放在配套文档中，只有进入对应状态时才加载。
+Workflow id: `topic_move_collector`
+
+Risk / Structure: `R2-R3` / `S3`
+
+本文档实现已注册的主题资料收集 workflow。执行前必须先阅读 [`lark-drive-workflow.md`](lark-drive-workflow.md) 和 [`../../lark-shared/SKILL.md`](../../lark-shared/SKILL.md)，并遵循共享执行协议、Artifact Contract、Workflow Loading、认证和写入确认规则。
+
+本文档负责定义本 workflow 的全局约束、状态机和渐进加载关系。具体阶段规则放在配套文档中，只有进入对应状态时才加载。
 
 配套文档只是本 workflow 的引用文件，不是独立 skill。不要把用户请求直接路由到某个配套文档。
 
@@ -66,7 +72,7 @@
 9. 默认只移动 `high` 相关资源；`medium` 资源必须由用户显式选择。
 10. 即使用户可见列表分页展示，也必须维护完整内部状态。
 11. `RESOURCE_RESOLVE` 和 `CONTENT_VERIFY` 是强制阶段，不得用搜索结果、标题或摘要直接替代。
-12. 触发后锁定 `active_workflow=workspace-topic-move-collector`；执行期间不得自动切换到其他 workflow。
+12. 触发后锁定 `workflow_id=topic_move_collector`；执行期间不得自动切换到其他 workflow。
 13. 如果认为需要切换 workflow，必须停止并向用户说明原因，等待用户确认。
 14. `RESOURCE_RESOLVE` 是移动资格门禁；只有确认 `move_permission_state=movable` 的资源才能进入默认移动链路。
 
@@ -93,11 +99,10 @@
 
 ## 运行时状态
 
-agent 在一次 workflow 运行中必须维护以下内部字段：
+本 workflow 扩展共享 Artifact Contract。agent 在一次 workflow 运行中必须维护以下专项内部字段：
 
 | 字段 | 说明 |
 |-------|------|
-| `active_workflow` | 固定为 `workspace-topic-move-collector`，执行期间不得改写。 |
 | `current_state` | 当前状态机节点。 |
 | `topic` | 用户确认后的主题、关键词、同义词和排除词。 |
 | `target_location` | 目标位置解析结果，见 setup 文件的 `TargetLocation`。 |
@@ -115,22 +120,22 @@ agent 在一次 workflow 运行中必须维护以下内部字段：
 
 ## 执行状态机
 
-| 状态 | 进入条件 | agent 必须执行 | 用户可见输出 | `wait_for_user` | 下一状态 |
-|-------|-----------------|---------------|--------------------|---------------|------------|
-| `PARSE_INPUT` | workflow 被触发 | 加载 setup 文档；解析主题、目标、身份和限制 | 澄清问题或解析摘要 | 必填字段缺失时为 `true` | `RESOLVE_TARGET` |
-| `RESOLVE_TARGET` | 主题和目标已获得 | 解析已有目标，或解析待创建目标 | 目标解析结果 | 目标有歧义时为 `true` | `CONFIRM_CONTEXT` |
-| `CONFIRM_CONTEXT` | 目标解析完成 | 展示主题、目标、身份、限制和跨容器设置 | 搜索前确认 UI | `true` | `SEARCH_RECALL` |
-| `SEARCH_RECALL` | 用户确认上下文 | 用原始关键词、默认 owner 范围和显式限制执行基础召回 | 搜索进度 / 基础统计 | 阻塞时为 `true` | `RECALL_ENHANCE` |
-| `RECALL_ENHANCE` | 基础召回完成 | 执行覆盖增强 query 并合并结果 | 增强召回摘要 | 阻塞时为 `true` | `RESOURCE_RESOLVE` |
-| `RESOURCE_RESOLVE` | 候选列表已准备 | 解析 token、类型、父级位置、owner 和移动资格 | 解析进度 / 阻塞摘要 | 阻塞时为 `true` | `CONTENT_VERIFY` |
-| `CONTENT_VERIFY` | 资源列表已准备 | 对支持的资源做有界内容读取 | 验证摘要 | 阻塞时为 `true` | `RELEVANCE_CLASSIFY` |
-| `RELEVANCE_CLASSIFY` | 证据已准备 | 按相关性和可执行性分组 | 分组结果列表 | `false` | `PLAN_MOVE` |
-| `PLAN_MOVE` | 分组完成 | 基于默认规则和用户可选项生成移动计划 | 草案计划和选择项 | `true` | `CONFIRM_EXECUTION` |
-| `CONFIRM_EXECUTION` | 用户要求执行 | 展示创建、移动、跳过项和风险 | 写操作确认 UI | `true` | `EXECUTE` 或 `PLAN_MOVE` 或 `DONE` |
-| `EXECUTE` | 用户明确确认写操作 | 需要时先创建目标，再移动确认资源 | 执行进度 | 阻塞时为 `true` | `VERIFY` 或 `RESTORE` |
-| `VERIFY` | 执行完成 | 验证目标位置下的移动结果 | 验证结果 | 提供恢复选项时为 `true` | `DONE` 或 `RESTORE` |
-| `RESTORE` | 用户要求恢复 | 仅基于快照和日志恢复 | 恢复确认 / 结果 | 写操作前为 `true` | `VERIFY` 或 `DONE` |
-| `DONE` | 无后续操作 | 停止 | 最终回复 | `false` | 结束 |
+| 状态 | Protocol Step | 进入条件 | agent 必须执行 | 用户可见输出 | `wait_for_user` | 下一状态 |
+|-------|---------------|-----------------|---------------|--------------------|---------------|------------|
+| `PARSE_INPUT` | `route` / `scope` | workflow 被触发 | 加载 setup 文档；解析主题、目标、身份和限制 | 澄清问题或解析摘要 | 必填字段缺失时为 `true` | `RESOLVE_TARGET` |
+| `RESOLVE_TARGET` | `scope` | 主题和目标已获得 | 解析已有目标，或解析待创建目标 | 目标解析结果 | 目标有歧义时为 `true` | `CONFIRM_CONTEXT` |
+| `CONFIRM_CONTEXT` | `scope` | 目标解析完成 | 展示主题、目标、身份、限制和跨容器设置 | 搜索前确认 UI | `true` | `SEARCH_RECALL` |
+| `SEARCH_RECALL` | `read` | 用户确认上下文 | 用原始关键词、默认 owner 范围和显式限制执行基础召回 | 搜索进度 / 基础统计 | 阻塞时为 `true` | `RECALL_ENHANCE` |
+| `RECALL_ENHANCE` | `read` | 基础召回完成 | 执行覆盖增强 query 并合并结果 | 增强召回摘要 | 阻塞时为 `true` | `RESOURCE_RESOLVE` |
+| `RESOURCE_RESOLVE` | `read` | 候选列表已准备 | 解析 token、类型、父级位置、owner 和移动资格 | 解析进度 / 阻塞摘要 | 阻塞时为 `true` | `CONTENT_VERIFY` |
+| `CONTENT_VERIFY` | `read` | 资源列表已准备 | 对支持的资源做有界内容读取 | 验证摘要 | 阻塞时为 `true` | `RELEVANCE_CLASSIFY` |
+| `RELEVANCE_CLASSIFY` | `assess` | 证据已准备 | 按相关性和可执行性分组 | 分组结果列表 | `false` | `PLAN_MOVE` |
+| `PLAN_MOVE` | `assess` / `plan` | 分组完成 | 基于默认规则和用户可选项生成移动计划 | 草案计划和选择项 | `true` | `CONFIRM_EXECUTION` |
+| `CONFIRM_EXECUTION` | `confirm` | 用户要求执行 | 展示创建、移动、跳过项和风险 | 写操作确认 UI | `true` | `EXECUTE` 或 `PLAN_MOVE` 或 `DONE` |
+| `EXECUTE` | `execute` | 用户明确确认写操作 | 需要时先创建目标，再移动确认资源 | 执行进度 | 阻塞时为 `true` | `VERIFY` 或 `RESTORE` |
+| `VERIFY` | `verify` | 执行完成 | 验证目标位置下的移动结果 | 验证结果 | 提供恢复选项时为 `true` | `DONE` 或 `RESTORE` |
+| `RESTORE` | `recovery confirm` / `recovery execute` | 用户要求恢复 | 仅基于快照和日志恢复 | 恢复确认 / 结果 | 写操作前为 `true` | `VERIFY` 或 `DONE` |
+| `DONE` | `done` | 无后续操作 | 停止 | 最终回复 | `false` | 结束 |
 
 ### 状态跳转硬约束
 

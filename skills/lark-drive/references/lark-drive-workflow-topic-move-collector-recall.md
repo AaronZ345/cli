@@ -4,7 +4,7 @@
 
 本文档负责基础搜索召回、覆盖增强、query 证据、去重和 `CandidateItem`。不得解析目标移动 token、读取完整文档内容、判断相关性或执行写操作。
 
-本文档只服务 `workspace-topic-move-collector`。进入本文档时，`active_workflow` 必须是 `workspace-topic-move-collector`；不得把当前任务改路由到其他 workflow。
+本文档只服务 `topic_move_collector`。进入本文档时，`workflow_id` 必须是 `topic_move_collector`；不得把当前任务改路由到其他 workflow。
 
 ## 必读上下文
 

@@ -4,7 +4,7 @@
 
 本文档负责用户输入解析、目标位置解析、搜索前确认和 `TargetLocation`。不得执行搜索召回、资源分类、目标创建或资源移动。
 
-本文档只服务 `workspace-topic-move-collector`。进入本文档后必须设置或确认 `active_workflow=workspace-topic-move-collector`；不得把当前任务改路由到其他 workflow。
+本文档只服务 `topic_move_collector`。进入本文档后必须确认 `workflow_id=topic_move_collector`；不得把当前任务改路由到其他 workflow。
 
 ## 必读上下文
 

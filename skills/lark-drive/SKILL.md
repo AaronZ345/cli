@@ -18,26 +18,15 @@ metadata:
 
 > **副本分流规则：** 如果用户要复制在线文档、创建文档副本、把文档复制到另一个文件夹，必须使用 `lark-cli drive files copy`。不要用 `drive +export` 下载后再 `drive +import` 上传，也不要用 `docs +fetch` + `docs +create` 重建正文；导出/导入只用于本地文件转换或离线产物。
 
-## Workflow 优先分流
-
-当用户的目标不只是“查一下 / 定位一个资源”，而是要把 Workspace 里的资料**整理、收集、归档、归类、汇总、移动或放到一起**时，必须先判断 workflow，不要直接从单个 shortcut 开始。
-
-| 用户意图 | 典型说法 | 必须先阅读 |
-|----------|----------|------------|
-| 按主题收集资料并统一归档 | “把有关 X 的文档整理到一起”、“找到所有关于 X 的资料并放到某个文件夹 / 知识库节点”、“按关键词收集资料” | [`references/lark-drive-workflow-topic-move-collector.md`](references/lark-drive-workflow-topic-move-collector.md) |
-| 整理目录结构或生成整理方案 | “整理云盘 / 文档库 / 知识库”、“盘点目录结构”、“归类这些文件夹”、“重构文档库目录” | [`references/lark-drive-workflow-knowledge-organize.md`](references/lark-drive-workflow-knowledge-organize.md) |
-
-如果同一请求同时像“搜索”和“整理 / 收集 / 归档”，workflow 优先；`drive +search` 只作为 workflow 内部召回步骤使用。
-
-一旦进入某个 workflow，后续阶段不得改路由到其他 workflow。只有用户明确改变目标，或当前 workflow 明确不支持新目标时，才允许暂停并询问是否切换。
-
 ## 快速决策
 
 - 用户要**复制文档 / 创建副本 / 另存为副本**时，使用 `lark-cli drive files copy`。先用 `lark-cli schema drive.files.copy --format json` 确认参数；如果来源是 wiki URL/token，先用 `lark-cli drive +inspect` 获取底层 `token` 和 `type`，不要把 wiki token 直接当 `file_token`。`params.file_token` 传源文档 token，`data.folder_token` 传目标文件夹 token，`data.name` 传副本名称，`data.type` 传源文件类型（如 `docx` / `sheet` / `bitable` / `slides`）。示例：`lark-cli drive files copy --params '{"file_token":"<DOC_TOKEN>"}' --data '{"folder_token":"<FOLDER_TOKEN>","name":"<COPY_NAME>","type":"docx"}'`。如返回 `confirmation_required`，按 `lark-shared` 高风险审批协议向用户确认后，在原命令末尾追加 `--yes` 重试。
 - 用户要**识别飞书 / doubao 云空间 URL 的类型和 token**时，可以先按 URL 路径形态做轻量判断；当路径已明确指向 docx / sheet / bitable / slides / file / folder 等资源时，可直接提取对应 token/type。传入 wiki URL、需要识别标题或 canonical URL、URL/token 有歧义，或后续操作依赖底层真实资源时，再使用 `lark-cli drive +inspect --url '<url>'` 进行识别；具体用法、失败处理和边界见 [`references/lark-drive-inspect.md`](references/lark-drive-inspect.md)。
 - 高风险写操作（删除、公开权限修改、owner 转移、版本删除/回滚、批量移动/覆盖/同步）必须同时满足三个条件才执行：目标已解析为该操作可直接使用的执行对象，执行细节已明确到可直接调用命令（例如删除的 file-token/type、公开权限修改的共享范围、owner 转移的目标 owner、版本删除/回滚的 version id、移动/覆盖/同步的目标位置和冲突策略），且用户在本轮明确确认执行这些具体目标和执行细节。用户只说“删除没用的文件”“开放/共享给大家”“改成开放”“覆盖/移动这些”只表示目标状态；先只读发现并列出候选、权限档位或执行方案，停止等待用户确认。
 - 用户要**检查 / 治理文档权限、公开范围、链接分享、外部访问、复制下载权限、密级标签、owner 转移**，或要“权限风险报告、收紧权限、申请查看 / 编辑权限、转移 / 批量转移 owner”，必须先阅读 [`references/lark-drive-workflow.md`](references/lark-drive-workflow.md)，再按其中 `Workflow Registry` 进入 [`permission_governance`](references/lark-drive-workflow-permission-governance.md) workflow。
+- 用户要**按特定主题、关键词或内容线索跨容器查找资料，并统一收集到 Drive 文件夹或 Wiki 节点**，必须先阅读 [`references/lark-drive-workflow.md`](references/lark-drive-workflow.md)，再按其中 `Workflow Registry` 进入 [`topic_move_collector`](references/lark-drive-workflow-topic-move-collector.md) workflow。该 workflow 负责搜索召回、内容验证、相关性分类、移动计划、写前确认和结果验证；禁止直接从 `drive +search` 或 `drive +move` 开始。
 - 用户要**整理云盘 / 文件夹 / 文档库 / 知识库 / 个人文档库**，或要“盘点目录结构、找出未归档/临时/重复/空目录、生成整理方案”，必须先阅读 [`references/lark-drive-workflow.md`](references/lark-drive-workflow.md)，再按其中 `Workflow Registry` 进入 [`knowledge_organize`](references/lark-drive-workflow-knowledge-organize.md) workflow。默认只生成方案；创建目录、移动资源、申请权限都必须单独确认。
+- 按主题跨范围查找并集中归档，进入 `topic_move_collector`；对已知文件夹、文档库或知识库做目录盘点和结构重组，进入 `knowledge_organize`；只移动一个已明确资源时仍使用原子移动命令。
 - 用户要**搜文档 / Wiki / 电子表格 / 多维表格 / 云空间（云盘/云存储）对象**，优先使用 `lark-cli drive +search`。自然语言里"最近我编辑过的"、"我创建的"（→ `--created-by-me`，原始创建者语义）、"我负责/owner 的"（→ `--mine`，owner 语义）、"最近一周我打开过的 xxx"、"某人 owner 的 docx" 等直接映射到扁平 flag，避免手写嵌套 JSON。
 - 用户要**获取文档评论列表**时，优先使用 `lark-cli drive +list-comments --url '<url>'`，不要优先手写 `drive file.comments list`；具体使用方式先阅读 [`references/lark-drive-list-comments.md`](references/lark-drive-list-comments.md)。
 - 用户要**根据文档评论定位正文位置**，例如 根据评论 review 文档、根据评论内容回看文档、区分多处相同引用文本时，对于 docx 类型（`file_type=docx`）的文档支持通过 `drive +list-comments --need-relation` 返回评论位置，其他类型会静默忽略该参数；具体用法需要先阅读 [`references/lark-drive-comment-location.md`](references/lark-drive-comment-location.md) 了解。

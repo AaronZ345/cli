@@ -4,7 +4,7 @@
 
 本文档负责最终写操作确认、目标创建、资源移动、验证、恢复行为、`RollbackSnapshotItem` 和执行日志。不得修改搜索、召回、分类规则或计划 schema。
 
-本文档只服务 `workspace-topic-move-collector`。进入本文档时，`active_workflow` 必须是 `workspace-topic-move-collector`；不得把当前任务改路由到其他 workflow。
+本文档只服务 `topic_move_collector`。进入本文档时，`workflow_id` 必须是 `topic_move_collector`；不得把当前任务改路由到其他 workflow。
 
 ## 必读上下文
 
